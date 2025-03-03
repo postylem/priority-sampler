@@ -1,15 +1,20 @@
 import numpy as np
 from scipy.stats import uniform, expon, gumbel_r, gumbel_l
+from typing import Dict, Callable, Tuple, Union, List, Any
 
 
 class PrioritySampler:
-    def __init__(self, kind: str = "uniform", use_scipy=False):
+    kind: str
+    perturb: Callable[[np.ndarray], np.ndarray]
+    q: Callable[[np.ndarray, float], np.ndarray]
+
+    def __init__(self, kind: str = "uniform", use_scipy: bool = False) -> None:
         self.kind = kind
         if not use_scipy:  # faster
             self.perturb = self._perturb[kind]
             self.q = self._q[kind]
-        else:  # pedagogical-er
-            noise = {
+        else:  # slower but pedagogical-er
+            noise: Dict[str, Callable[[np.ndarray], Any]] = {
                 "uniform": lambda w: uniform(loc=0, scale=1 / w),
                 "exponential": lambda w: expon(scale=1 / w),
                 "gumbel": lambda w: gumbel_l(loc=-np.log(w), scale=1),
@@ -32,14 +37,14 @@ class PrioritySampler:
         S, t = self._threshold(z, size)
         return w / self.q(w, t) * np.isin(np.arange(len(w)), S)
 
-    _perturb = {
+    _perturb: Dict[str, Callable[[np.ndarray], np.ndarray]] = {
         "uniform": lambda w: np.random.uniform(low=0, high=1 / w, size=len(w)),
         "exponential": lambda w: np.random.exponential(scale=1 / w, size=len(w)),
         "gumbel": lambda w: -np.random.gumbel(loc=np.log(w), scale=1, size=len(w)),
         "gumbelmax": lambda w: np.random.gumbel(loc=np.log(w), scale=1, size=len(w)),
     }
 
-    _q = {
+    _q: Dict[str, Callable[[np.ndarray, float], np.ndarray]] = {
         # Pr(i ∈ S | t) = Pr(Uniform(0,1/w) < t) = min(1, wt)
         "uniform": lambda w, t: np.minimum(1, w * t),
         # Pr(i ∈ S | t) = Pr(Exponential(scale=1/w) < t)
@@ -53,8 +58,7 @@ class PrioritySampler:
         "gumbelmax": lambda w, t: -np.expm1(-w * np.exp(-t)),
     }
 
-    # @staticmethod
-    def _threshold(self, z: np.ndarray, k: int):
+    def _threshold(self, z: np.ndarray, k: int) -> Tuple[np.ndarray, float]:
         """
         Get lowest k values' indices, and (k+1)-smallest value from array z
         (or highest                 , and (k+1)-largest )
@@ -62,5 +66,6 @@ class PrioritySampler:
         sorted_indices = (
             np.argsort(z) if self.kind[-3:] != "max" else np.argsort(z)[::-1]
         )
-        S, t = sorted_indices[:k], z[sorted_indices[k]]
-        return S, t
+        sample = sorted_indices[:k]
+        threshold = z[sorted_indices[k]]
+        return sample, threshold
