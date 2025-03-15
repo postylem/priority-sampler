@@ -1,12 +1,12 @@
 [project]
-name = "priority"
+name = "perturb_sort"
 version = "0.1.0"
-description = "Priority sampling"
+description = "Perturb-sort sampling"
 readme = "README.md"
 authors = [
     { name = "Jacob Hoover Vigly", email = "jacvigly@gmail.com" }
 ]
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = [
     "numpy>=2.2.3",
     "pandas>=2.2.3",
@@ -19,10 +19,8 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
+    "plotly>=6.0.0",
     "black>=25.1.0",
     "ipykernel>=6.29.5",
-]
-viz = [
     "nbformat>=5.10.4",
-    "plotly>=6.0.0",
 ]
